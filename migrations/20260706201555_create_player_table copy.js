@@ -8,8 +8,8 @@ exports.up = function(knex) {
     table.string('name').notNullable();
     table.integer('age').notNullable();
     table.string('position').notNullable();
-    table.integer('goals').notNullable();
-    table.integer('goals_per_90').notNullable();
+    table.float('goals', 10, 2).notNullable();
+    table.float('goals_per_90', 10, 2).notNullable();
     table.integer('assists').notNullable();
     table.integer('yellow_cards').notNullable();
     table.integer('red_cards').notNullable();
