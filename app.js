@@ -11,11 +11,11 @@ const pool = new Pool({
 const app = express();
 app.use(express.json());
 
-const csvFilePath = '/Users/tommy/Downloads/players.csv';
+const csvData = './data/players.csv';
 
 const players = [];
 
-fs.createReadStream(csvFilePath)
+fs.createReadStream(csvData)
     .pipe(parse({ columns: true, delimiter: ',' }))
     .on('data', (row) => {
         players.push(row);
