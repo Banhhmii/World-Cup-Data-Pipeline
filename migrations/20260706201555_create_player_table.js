@@ -7,6 +7,7 @@ exports.up = function(knex) {
     table.increments('id').primary();
     table.string('name').notNullable();
     table.integer('age').notNullable();
+    table.string('country').notNullable();
     table.string('position').notNullable();
     table.float('goals', 10, 2).notNullable();
     table.float('goals_per_90', 10, 2).notNullable();
