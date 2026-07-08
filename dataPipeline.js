@@ -1,7 +1,6 @@
 const fs = require('fs');
 const parse = require('csv-parser');
 const { Pool } = require('pg');
-const express = require('express');
 const dotenv = require('dotenv');
 dotenv.config();
 
@@ -31,7 +30,7 @@ fs.createReadStream(csvData)
 const transformPlayerData = (player) => {
     return {
         name: player.player,
-        age: Number(player.age.split("", 2).join('')), // Extract the first two characters for age
+        age: parseInt(player.age, 10),
         position: player.position,
         goals: parseInt(player.goals, 10),
         goals_per_90: parseFloat(player.goals_per90),
