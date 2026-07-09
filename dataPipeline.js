@@ -17,13 +17,13 @@ fs.createReadStream(csvData)
   .on("data", (row) => {
     players.push(row);
   })
+  .on("error", (error) => {
+    console.error("Error reading CSV file:", error);
+  })
   .on("end", () => {
     const transformedPlayers = players.map(transformPlayerData);
     console.log("Successfully read and transformed player data from CSV");
     storeAllPlayers(transformedPlayers)
-      .then(() => {
-        console.log("All player data has been stored in the database");
-      })
       .catch((error) => {
         console.error("Error storing player data:", error);
       });
@@ -117,4 +117,5 @@ const storeAllPlayers = async (players) => {
       await storePlayerData(player);
     }
   }
+  console.log("All player data stored successfully.");
 };

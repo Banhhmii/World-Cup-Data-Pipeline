@@ -4,6 +4,9 @@ const  redis  = require("redis");
 const dotenv = require("dotenv");
 dotenv.config();
 
+const { loggingMiddleware } = require("./middleware/logging");
+const { rateLimiter } = require("./middleware/rateLimiter");
+
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -11,25 +14,34 @@ const pool = new Pool({
   connectionString: process.env.PG_CONNECTION_STRING,
 });
 
-const redisClient = redis.createClient({url: process.env.REDIS_URL});
+try {
+  const redisClient = redis.createClient({url: process.env.REDIS_URL});
 
-redisClient.on("error", (err) => {
-  console.error("Redis error:", err);
-});
+}catch (err) {
+  console.error("Error creating Redis client:", err);
+}
 
-redisClient.on("connect", () => {
-  console.log("Connected to Redis");
-});
+try {
+  redisClient.on("connect", () => {
+    console.log("Connected to Redis");
+  });
+}catch (err) {
+  console.error("Error connecting to Redis:", err);
+}
+
 
 redisClient.connect().catch((err) => {
   console.error("Error connecting to Redis:", err);
 });
 
+app.use(express.json());
+app.use(loggingMiddleware);
+
 app.get("/", (req, res) => {
   res.send("Welcome to the World Cup Data API");
 });
 
-app.get("/players", async (req, res) => {
+app.get("/players", rateLimiter, async (req, res) => {
   try {
     const cachedPlayers = await redisClient.get("players");
     if (cachedPlayers) {
@@ -41,7 +53,7 @@ app.get("/players", async (req, res) => {
     const players = playerResult.rows;
     const goalkeepers = goalkeeperResult.rows;
 
-    await redisClient.set("players", JSON.stringify({ players, goalkeepers }), {
+    await redisClient.set("players", JSON.stringify(players), {
       EX: 3600,
     });
     await redisClient.set("goalkeepers", JSON.stringify(goalkeepers), {
