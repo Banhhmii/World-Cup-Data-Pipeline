@@ -23,10 +23,9 @@ fs.createReadStream(csvData)
   .on("end", () => {
     const transformedPlayers = players.map(transformPlayerData);
     console.log("Successfully read and transformed player data from CSV");
-    storeAllPlayers(transformedPlayers)
-      .catch((error) => {
-        console.error("Error storing player data:", error);
-      });
+    storeAllPlayers(transformedPlayers).catch((error) => {
+      console.error("Error storing player data:", error);
+    });
   });
 
 const transformPlayerData = (player) => {
@@ -55,57 +54,6 @@ const transformPlayerData = (player) => {
       red_cards: parseInt(player.cards_red, 10) || 0,
       points_per_game: parseFloat(player.points_per_game) || 0,
     };
-  }
-};
-
-const storePlayerData = async (player) => {
-  const query = `
-        INSERT INTO player (name, age, country, position, goals, goals_per_90, assists, yellow_cards, red_cards, points_per_game)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`;
-
-  const values = [
-    player.name,
-    player.age,
-    player.country,
-    player.position,
-    player.goals,
-    player.goals_per_90,
-    player.assists,
-    player.yellow_cards,
-    player.red_cards,
-    player.points_per_game,
-  ];
-
-  try {
-    await pool.query(query, values);
-    console.log(`Player ${player.name} inserted successfully.`);
-  } catch (error) {
-    console.error(`Error inserting player ${player.name}:`, error);
-  }
-};
-
-const storeGoalkeeperData = async (goalkeeper) => {
-  const query = `
-        INSERT INTO goalkeepers (name, age, country, position, saves, saves_pct, goals_conceded, goals_conceded_per_90, clean_sheets)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`;
-
-  const values = [
-    goalkeeper.name,
-    goalkeeper.age,
-    goalkeeper.country,
-    goalkeeper.position,
-    goalkeeper.saves,
-    goalkeeper.saves_pct,
-    goalkeeper.goals_conceded,
-    goalkeeper.goals_conceded_per_90,
-    goalkeeper.clean_sheets,
-  ];
-
-  try {
-    await pool.query(query, values);
-    console.log(`Goalkeeper ${goalkeeper.name} inserted successfully.`);
-  } catch (error) {
-    console.error(`Error inserting goalkeeper ${goalkeeper.name}:`, error);
   }
 };
 
@@ -140,11 +88,20 @@ const storePlayerBatch = async (players) => {
       player.assists,
       player.yellow_cards,
       player.red_cards,
-      player.points_per_game
+      player.points_per_game,
     );
     return `(${columns.map((_, i) => `$${base + i + 1}`).join(", ")})`;
   });
-}
+
+  const query = `INSERT INTO player (${columns.join(", ")}) VALUES ${rows.join(", ")}`;
+
+  try {
+    await pool.query(query, values);
+    console.log("Batch of players inserted successfully.");
+  } catch (error) {
+    console.error("Error inserting batch of players:", error);
+  }
+};
 
 const storeGoalkeeperBatch = async (goalkeepers) => {
   if (goalkeepers.length === 0) {
@@ -175,18 +132,29 @@ const storeGoalkeeperBatch = async (goalkeepers) => {
       goalkeeper.saves_pct,
       goalkeeper.goals_conceded,
       goalkeeper.goals_conceded_per_90,
-      goalkeeper.clean_sheets
+      goalkeeper.clean_sheets,
     );
     return `(${columns.map((_, i) => `$${base + i + 1}`).join(", ")})`;
   });
+
+  const query = `INSERT INTO goalkeepers (${columns.join(", ")}) VALUES ${rows.join(", ")}`;
+
+  try {
+    await pool.query(query, values);
+    console.log("Batch of goalkeepers inserted successfully.");
+  } catch (error) {
+    console.error("Error inserting batch of goalkeepers:", error);
+  }
 };
 
 const storeAllPlayers = async (players) => {
   const playerData = players.filter((player) => player.position !== "GK");
   const goalkeeperData = players.filter((player) => player.position === "GK");
-
-  await storePlayerBatch(playerData);
-  await storeGoalkeeperBatch(goalkeeperData);
-
-  console.log("All player data stored successfully.");
+  try {
+    await storePlayerBatch(playerData);
+    await storeGoalkeeperBatch(goalkeeperData);
+    console.log("All player data stored successfully.");
+  } catch (error) {
+    console.error("Error storing all player data:", error);
+  }
 };

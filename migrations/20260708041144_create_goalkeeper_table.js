@@ -14,7 +14,6 @@ exports.up = function(knex) {
     table.integer('goals_conceded').notNullable();
     table.float('goals_conceded_per_90', 10, 2).notNullable();
     table.integer('clean_sheets').notNullable();
-    table
   });
 };
 
