@@ -36,17 +36,12 @@ app.get("/players", rateLimiter, async (req, res) => {
     const goalkeeperResult = await pool.query("SELECT * FROM goalkeepers");
     const players = playerResult.rows;
     const goalkeepers = goalkeeperResult.rows;
+    const payload = { players, goalkeepers };
 
-    await redisClient.set("players", JSON.stringify(players), {
+    await redisClient.set("players", JSON.stringify(payload), {
       EX: 3600,
     });
-    await redisClient.set("goalkeepers", JSON.stringify(goalkeepers), {
-      EX: 3600,
-    });
-    res.json({
-      players: players,
-      goalkeepers: goalkeepers,
-    });
+    res.json(payload);
 
   } catch (error) {
     console.error("Error fetching players:", error);

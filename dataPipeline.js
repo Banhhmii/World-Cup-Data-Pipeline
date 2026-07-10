@@ -109,13 +109,84 @@ const storeGoalkeeperData = async (goalkeeper) => {
   }
 };
 
-const storeAllPlayers = async (players) => {
-  for (const player of players) {
-    if (player.position === "GK") {
-      await storeGoalkeeperData(player);
-    } else {
-      await storePlayerData(player);
-    }
+const storePlayerBatch = async (players) => {
+  if (players.length === 0) {
+    console.log("No players to store.");
+    return;
   }
+  const columns = [
+    "name",
+    "age",
+    "country",
+    "position",
+    "goals",
+    "goals_per_90",
+    "assists",
+    "yellow_cards",
+    "red_cards",
+    "points_per_game",
+  ];
+
+  const values = [];
+  const rows = players.map((player, index) => {
+    const base = index * columns.length;
+    values.push(
+      player.name,
+      player.age,
+      player.country,
+      player.position,
+      player.goals,
+      player.goals_per_90,
+      player.assists,
+      player.yellow_cards,
+      player.red_cards,
+      player.points_per_game
+    );
+    return `(${columns.map((_, i) => `$${base + i + 1}`).join(", ")})`;
+  });
+}
+
+const storeGoalkeeperBatch = async (goalkeepers) => {
+  if (goalkeepers.length === 0) {
+    console.log("No goalkeepers to store.");
+    return;
+  }
+  const columns = [
+    "name",
+    "age",
+    "country",
+    "position",
+    "saves",
+    "saves_pct",
+    "goals_conceded",
+    "goals_conceded_per_90",
+    "clean_sheets",
+  ];
+
+  const values = [];
+  const rows = goalkeepers.map((goalkeeper, index) => {
+    const base = index * columns.length;
+    values.push(
+      goalkeeper.name,
+      goalkeeper.age,
+      goalkeeper.country,
+      goalkeeper.position,
+      goalkeeper.saves,
+      goalkeeper.saves_pct,
+      goalkeeper.goals_conceded,
+      goalkeeper.goals_conceded_per_90,
+      goalkeeper.clean_sheets
+    );
+    return `(${columns.map((_, i) => `$${base + i + 1}`).join(", ")})`;
+  });
+};
+
+const storeAllPlayers = async (players) => {
+  const playerData = players.filter((player) => player.position !== "GK");
+  const goalkeeperData = players.filter((player) => player.position === "GK");
+
+  await storePlayerBatch(playerData);
+  await storeGoalkeeperBatch(goalkeeperData);
+
   console.log("All player data stored successfully.");
 };
