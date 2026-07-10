@@ -57,6 +57,7 @@ const transformPlayerData = (player) => {
   }
 };
 
+
 const storePlayerBatch = async (players) => {
   if (players.length === 0) {
     console.log("No players to store.");
@@ -100,6 +101,7 @@ const storePlayerBatch = async (players) => {
     console.log("Batch of players inserted successfully.");
   } catch (error) {
     console.error("Error inserting batch of players:", error);
+    throw error;
   }
 };
 
@@ -143,7 +145,8 @@ const storeGoalkeeperBatch = async (goalkeepers) => {
     await pool.query(query, values);
     console.log("Batch of goalkeepers inserted successfully.");
   } catch (error) {
-    console.error("Error inserting batch of goalkeepers:", error);
+      console.error("Error inserting batch of goalkeepers:", error);
+      throw error;
   }
 };
 
@@ -156,5 +159,6 @@ const storeAllPlayers = async (players) => {
     console.log("All player data stored successfully.");
   } catch (error) {
     console.error("Error storing all player data:", error);
+    throw error;
   }
 };
