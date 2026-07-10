@@ -14,25 +14,9 @@ const pool = new Pool({
   connectionString: process.env.PG_CONNECTION_STRING,
 });
 
-try {
-  const redisClient = redis.createClient({url: process.env.REDIS_URL});
-
-}catch (err) {
-  console.error("Error creating Redis client:", err);
-}
-
-try {
-  redisClient.on("connect", () => {
-    console.log("Connected to Redis");
-  });
-}catch (err) {
-  console.error("Error connecting to Redis:", err);
-}
-
-
-redisClient.connect().catch((err) => {
-  console.error("Error connecting to Redis:", err);
-});
+const redisClient = redis.createClient({ url: process.env.REDIS_URL });
+redisClient.on("error", (err) => console.error("Redis error:", err));
+redisClient.connect().catch((err) => console.error("Error connecting to Redis:", err));
 
 app.use(express.json());
 app.use(loggingMiddleware);
