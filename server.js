@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const { Pool } = require("pg");
 const  redis  = require("redis");
 const dotenv = require("dotenv");
@@ -20,10 +21,7 @@ redisClient.connect().catch((err) => console.error("Error connecting to Redis:",
 
 app.use(express.json());
 app.use(loggingMiddleware);
-
-app.get("/", (req, res) => {
-  res.send("Welcome to the World Cup Data API");
-});
+app.use(express.static(path.join(__dirname, "views")));
 
 app.get("/players", rateLimiter, async (req, res) => {
   try {

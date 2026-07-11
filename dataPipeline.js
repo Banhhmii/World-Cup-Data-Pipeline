@@ -22,8 +22,15 @@ fs.createReadStream(csvData)
   })
   .on("end", () => {
     const transformedPlayers = players.map(transformPlayerData);
+    const validPlayers = transformedPlayers.filter((player) => {
+      if (Number.isNaN(player.age)) {
+        console.error(`Skipping ${player.name}: invalid age`);
+        return false;
+      }
+      return true;
+    });
     console.log("Successfully read and transformed player data from CSV");
-    storeAllPlayers(transformedPlayers).catch((error) => {
+    storeAllPlayers(validPlayers).catch((error) => {
       console.error("Error storing player data:", error);
     });
   });
@@ -153,12 +160,27 @@ const storeGoalkeeperBatch = async (goalkeepers) => {
 const storeAllPlayers = async (players) => {
   const playerData = players.filter((player) => player.position !== "GK");
   const goalkeeperData = players.filter((player) => player.position === "GK");
-  try {
-    await storePlayerBatch(playerData);
-    await storeGoalkeeperBatch(goalkeeperData);
-    console.log("All player data stored successfully.");
-  } catch (error) {
-    console.error("Error storing all player data:", error);
-    throw error;
+
+  const results = await Promise.allSettled([
+    storePlayerBatch(playerData),
+    storeGoalkeeperBatch(goalkeeperData),
+  ]);
+
+  const [playerResult, goalkeeperResult] = results;
+  const playerStatus =
+    playerResult.status === "fulfilled"
+      ? `inserted (${playerData.length})`
+      : `FAILED (${playerResult.reason.message})`;
+  const goalkeeperStatus =
+    goalkeeperResult.status === "fulfilled"
+      ? `inserted (${goalkeeperData.length})`
+      : `FAILED (${goalkeeperResult.reason.message})`;
+
+  console.log(
+    `Players: ${playerStatus} | Goalkeepers: ${goalkeeperStatus}`,
+  );
+
+  if (playerResult.status === "rejected" || goalkeeperResult.status === "rejected") {
+    throw new Error("One or more batches failed to store — see summary above.");
   }
 };
