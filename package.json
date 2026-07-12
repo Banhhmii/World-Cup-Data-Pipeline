@@ -1,9 +1,9 @@
 {
-  "scripts":{
+  "scripts": {
     "start": "node server.js",
-    "migrate": "knex migrate:latest"
+    "migrate": "knex migrate:latest",
+    "test": "NODE_ENV=test jest"
   },
-
   "dependencies": {
     "csv-parser": "^3.2.1",
     "dotenv": "^17.4.2",
@@ -12,5 +12,9 @@
     "knex": "^3.3.0",
     "pg": "^8.22.0",
     "redis": "^6.1.0"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
   }
 }

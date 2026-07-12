@@ -1,39 +1,8 @@
 const fs = require("fs");
 const parse = require("csv-parser");
-const { Pool } = require("pg");
-const dotenv = require("dotenv");
-dotenv.config();
-
-const pool = new Pool({
-  connectionString: process.env.PG_CONNECTION_STRING,
-});
+const pool = require("./db");
 
 const csvData = "./data/players.csv";
-
-const players = [];
-
-fs.createReadStream(csvData)
-  .pipe(parse({ columns: true, delimiter: "," }))
-  .on("data", (row) => {
-    players.push(row);
-  })
-  .on("error", (error) => {
-    console.error("Error reading CSV file:", error);
-  })
-  .on("end", () => {
-    const transformedPlayers = players.map(transformPlayerData);
-    const validPlayers = transformedPlayers.filter((player) => {
-      if (Number.isNaN(player.age)) {
-        console.error(`Skipping ${player.name}: invalid age`);
-        return false;
-      }
-      return true;
-    });
-    console.log("Successfully read and transformed player data from CSV");
-    storeAllPlayers(validPlayers).catch((error) => {
-      console.error("Error storing player data:", error);
-    });
-  });
 
 const transformPlayerData = (player) => {
   if (player.position === "GK") {
@@ -64,6 +33,15 @@ const transformPlayerData = (player) => {
   }
 };
 
+const filterValidPlayers = (players) => {
+  return players.filter((player) => {
+    if (Number.isNaN(player.age)) {
+      console.error(`Skipping ${player.name}: invalid age`);
+      return false;
+    }
+    return true;
+  });
+};
 
 const storePlayerBatch = async (players) => {
   if (players.length === 0) {
@@ -175,4 +153,37 @@ const storeAllPlayers = async (players) => {
     throw new Error("One or more batches failed to store — see summary above.");
   }
 
+};
+
+const runPipeline = () => {
+  const players = [];
+
+  fs.createReadStream(csvData)
+    .pipe(parse({ columns: true, delimiter: "," }))
+    .on("data", (row) => {
+      players.push(row);
+    })
+    .on("error", (error) => {
+      console.error("Error reading CSV file:", error);
+    })
+    .on("end", () => {
+      const transformedPlayers = players.map(transformPlayerData);
+      const validPlayers = filterValidPlayers(transformedPlayers);
+      console.log("Successfully read and transformed player data from CSV");
+      storeAllPlayers(validPlayers).catch((error) => {
+        console.error("Error storing player data:", error);
+      });
+    });
+};
+
+if (require.main === module) {
+  runPipeline();
+}
+
+module.exports = {
+  transformPlayerData,
+  filterValidPlayers,
+  storePlayerBatch,
+  storeGoalkeeperBatch,
+  storeAllPlayers,
 };
