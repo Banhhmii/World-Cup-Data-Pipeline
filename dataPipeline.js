@@ -160,27 +160,19 @@ const storeGoalkeeperBatch = async (goalkeepers) => {
 const storeAllPlayers = async (players) => {
   const playerData = players.filter((player) => player.position !== "GK");
   const goalkeeperData = players.filter((player) => player.position === "GK");
-
-  const results = await Promise.allSettled([
+  const result =  await Promise.allSettled([
     storePlayerBatch(playerData),
     storeGoalkeeperBatch(goalkeeperData),
   ]);
 
-  const [playerResult, goalkeeperResult] = results;
-  const playerStatus =
-    playerResult.status === "fulfilled"
-      ? `inserted (${playerData.length})`
-      : `FAILED (${playerResult.reason.message})`;
-  const goalkeeperStatus =
-    goalkeeperResult.status === "fulfilled"
-      ? `inserted (${goalkeeperData.length})`
-      : `FAILED (${goalkeeperResult.reason.message})`;
+  const [playerResult, goalkeeperResult] = result;
+  const playerStatus = playerResult.status === "fulfilled" ? `inserted (${playerData.length})` : `FAILED (${playerResult.reason.message})`;
+  const goalkeeperStatus = goalkeeperResult.status === "fulfilled" ? `inserted (${goalkeeperData.length})` : `FAILED (${goalkeeperResult.reason.message})`;
 
-  console.log(
-    `Players: ${playerStatus} | Goalkeepers: ${goalkeeperStatus}`,
-  );
+  console.log(`Players: ${playerStatus} | Goalkeepers: ${goalkeeperStatus}`);
 
-  if (playerResult.status === "rejected" || goalkeeperResult.status === "rejected") {
+  if(playerResult.status === "rejected" || goalkeeperResult.status === "rejected") {
     throw new Error("One or more batches failed to store — see summary above.");
   }
+
 };

@@ -17,7 +17,7 @@ const getAllPlayers = async () => {
 
 const createStatRow = (label, value) => {
     const row = document.createElement("li");
-    row.textContent = `${label}: ${value}`;
+    row.textContent = `$(label): $(value)`;
     return row;
 };
 
@@ -30,11 +30,9 @@ const createPlayerCard = (player, statFields) => {
     card.appendChild(name);
 
     const stats = document.createElement("ul");
-    stats.appendChild(createStatRow("Age", player.age));
-    stats.appendChild(createStatRow("Position", player.position));
-    statFields.forEach(([label, key]) => {
+    for (const [label, key] of statFields) {
         stats.appendChild(createStatRow(label, player[key]));
-    });
+    }
     card.appendChild(stats);
 
     return card;
@@ -54,23 +52,27 @@ const renderSection = (title, players, statFields) => {
     return section;
 };
 
-const renderPlayers = ({ players, goalkeepers }) => {
+const renderPlayers = ({players, goalkeepers}) => {
     displayContainer.appendChild(
         renderSection("Players", players, [
+            ["Age", "age"],
+            ["Position", "position"],
             ["Goals", "goals"],
             ["Assists", "assists"],
             ["Yellow Cards", "yellow_cards"],
             ["Red Cards", "red_cards"],
-        ]),
+        ])
     );
 
     displayContainer.appendChild(
         renderSection("Goalkeepers", goalkeepers, [
+            ["Age", "age"],
+            ["Position", "position"],
             ["Saves", "saves"],
             ["Save %", "saves_pct"],
             ["Goals Conceded", "goals_conceded"],
             ["Clean Sheets", "clean_sheets"],
-        ]),
+        ])
     );
 };
 
