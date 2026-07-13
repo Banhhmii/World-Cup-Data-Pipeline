@@ -92,7 +92,8 @@ See `.env.example` for the full list. You'll need:
 
 ## What I Learned
 
-Building `renderPlayers` and the fail-soft batch summary from scratch (rather than reading someone else's diff) was a genuine struggle, but powering through it made the pattern stick in a way copying never does. The most useful concept from the testing pass was `require.main === module` — it's Node's version of Python's `if __name__ == "__main__":`, and it let `dataPipeline.js` work both as a standalone script and as a side-effect-free module `require()`'d by tests. The other was realizing test isolation doesn't need a second database: a dedicated Postgres schema (`test` vs `public`) inside the same Supabase project, switched via `search_path`, was enough to keep 13 tests from ever touching real data.
+- Getting Redis to connect wasn't working at first — I dug into the docs instead of guessing, got the cache-aside pattern working, and later confirmed it end-to-end: I hit `GET /players` twice, saw the first call read from Postgres and the second return `Returning cached players` from the Redis cache.
+- Writing `renderPlayers` and the fail-soft batch summary from scratch (rather than working from a diff) was a deliberate drill, and it was a struggle, but it's the kind of thing that sticks once you've actually typed it yourself instead of reading someone else's version.
 
 ## Credits
 
