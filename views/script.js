@@ -17,7 +17,7 @@ const getAllPlayers = async () => {
 
 const createStatRow = (label, value) => {
     const row = document.createElement("li");
-    row.textContent = `$(label): $(value)`;
+    row.textContent = `${label}: ${value}`;
     return row;
 };
 
