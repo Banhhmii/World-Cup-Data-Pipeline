@@ -7,6 +7,8 @@ const {
   storePlayerBatch,
   storeGoalkeeperBatch,
   storeAllPlayers,
+  PLAYER_BATCH_SIZE,
+  GOALKEEPER_BATCH_SIZE,
 } = require("./dataPipeline");
 
 describe("transformPlayerData (pure)", () => {
@@ -159,5 +161,62 @@ describe("batch storage (real test DB)", () => {
     const goalkeeperRows = await pool.query("SELECT * FROM goalkeepers");
     expect(playerRows.rows).toHaveLength(1);
     expect(goalkeeperRows.rows).toHaveLength(0);
+  });
+
+  const buildPlayers = (count) =>
+    Array.from({ length: count }, (_, i) => ({
+      ...validPlayer,
+      name: `Test Player ${i}`,
+    }));
+
+  const buildGoalkeepers = (count) =>
+    Array.from({ length: count }, (_, i) => ({
+      ...validGoalkeeper,
+      name: `Test Keeper ${i}`,
+    }));
+
+  it("chunks a player batch spanning a full chunk plus a partial chunk", async () => {
+    const players = buildPlayers(PLAYER_BATCH_SIZE + 50);
+    await storePlayerBatch(players);
+    const { rows } = await pool.query("SELECT * FROM player");
+    expect(rows).toHaveLength(PLAYER_BATCH_SIZE + 50);
+  });
+
+  it("chunks a goalkeeper batch spanning a full chunk plus a partial chunk", async () => {
+    const goalkeepers = buildGoalkeepers(GOALKEEPER_BATCH_SIZE + 10);
+    await storeGoalkeeperBatch(goalkeepers);
+    const { rows } = await pool.query("SELECT * FROM goalkeepers");
+    expect(rows).toHaveLength(GOALKEEPER_BATCH_SIZE + 10);
+  });
+
+  it("issues one INSERT per chunk rather than one INSERT for the whole batch", async () => {
+    const querySpy = jest.spyOn(pool, "query");
+
+    await storePlayerBatch(buildPlayers(PLAYER_BATCH_SIZE + 50));
+    await storeGoalkeeperBatch(buildGoalkeepers(GOALKEEPER_BATCH_SIZE + 10));
+
+    const playerInserts = querySpy.mock.calls.filter(([sql]) =>
+      sql.startsWith("INSERT INTO player")
+    );
+    const goalkeeperInserts = querySpy.mock.calls.filter(([sql]) =>
+      sql.startsWith("INSERT INTO goalkeepers")
+    );
+
+    expect(playerInserts).toHaveLength(2);
+    expect(goalkeeperInserts).toHaveLength(2);
+
+    querySpy.mockRestore();
+  });
+
+  it("moves on to the next chunk instead of aborting after a chunk fails", async () => {
+    const players = buildPlayers(PLAYER_BATCH_SIZE + 10);
+    players[PLAYER_BATCH_SIZE + 3] = { ...players[PLAYER_BATCH_SIZE + 3], name: null }; // violates notNullable, lands in chunk 2
+
+    await expect(storePlayerBatch(players)).rejects.toThrow(
+      "1 of 2 player chunk(s) failed to insert."
+    );
+
+    const { rows } = await pool.query("SELECT * FROM player");
+    expect(rows).toHaveLength(PLAYER_BATCH_SIZE);
   });
 });
