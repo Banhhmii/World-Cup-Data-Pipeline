@@ -4,9 +4,9 @@ const pool = require("./db");
 
 const csvData = "./data/players.csv";
 
-// For 1000+ players total
+// For 1000+ players total for volume of data
 const PLAYER_BATCH_SIZE = 200;
-// For 100+ goalkeepers in total
+// For 100+ goalkeepers in total for volume of data
 const GOALKEEPER_BATCH_SIZE = 30;
 
 const chunkArray = (array, size) => {
@@ -56,25 +56,13 @@ const filterValidPlayers = (players) => {
   });
 };
 
-const storePlayerBatch = async (players) => {
+const storeBatch = async ({players, tableName, columns, batchSize}) => {
   if (players.length === 0) {
-    console.log("No players to store.");
+    console.log(`No ${tableName} to store.`);
     return;
   }
-  const columns = [
-    "name",
-    "age",
-    "country",
-    "position",
-    "goals",
-    "goals_per_90",
-    "assists",
-    "yellow_cards",
-    "red_cards",
-    "points_per_game",
-  ];
 
-  const chunks = chunkArray(players, PLAYER_BATCH_SIZE);
+  const chunks = chunkArray(players, batchSize);
   const errors = [];
   let insertedCount = 0;
 
@@ -82,29 +70,18 @@ const storePlayerBatch = async (players) => {
     const values = [];
     const rows = chunk.map((player, index) => {
       const base = index * columns.length;
-      values.push(
-        player.name,
-        player.age,
-        player.country,
-        player.position,
-        player.goals,
-        player.goals_per_90,
-        player.assists,
-        player.yellow_cards,
-        player.red_cards,
-        player.points_per_game,
-      );
+      values.push(...columns.map(col => player[col]));
       return `(${columns.map((_, i) => `$${base + i + 1}`).join(", ")})`;
     });
 
-    const query = `INSERT INTO player (${columns.join(", ")}) VALUES ${rows.join(", ")}`;
+    const query = `INSERT INTO ${tableName} (${columns.join(", ")}) VALUES ${rows.join(", ")}`;
 
     try {
       await pool.query(query, values);
       insertedCount += chunk.length;
     } catch (error) {
       console.error(
-        `Error inserting player chunk ${chunkIndex + 1}/${chunks.length} (${chunk.length} rows):`,
+        `Error inserting ${tableName} chunk ${chunkIndex + 1}/${chunks.length} (${chunk.length} rows):`,
         error,
       );
       errors.push({ chunkIndex, error });
@@ -113,7 +90,7 @@ const storePlayerBatch = async (players) => {
 
   if (errors.length > 0) {
     const aggregateError = new Error(
-      `${errors.length} of ${chunks.length} player chunk(s) failed to insert.`,
+      `${errors.length} of ${chunks.length} ${tableName} chunk(s) failed to insert.`,
     );
     aggregateError.insertedRows = insertedCount;
     aggregateError.totalRows = players.length;
@@ -122,84 +99,50 @@ const storePlayerBatch = async (players) => {
   }
 
   console.log(
-    `Batch of players inserted successfully (${players.length} rows in ${chunks.length} chunk(s)).`,
+    `Batch of ${tableName} inserted successfully (${players.length} rows in ${chunks.length} chunk(s)).`,
   );
-};
+}
 
-const storeGoalkeeperBatch = async (goalkeepers) => {
-  if (goalkeepers.length === 0) {
-    console.log("No goalkeepers to store.");
-    return;
-  }
-  const columns = [
-    "name",
-    "age",
-    "country",
-    "position",
-    "saves",
-    "saves_pct",
-    "goals_conceded",
-    "goals_conceded_per_90",
-    "clean_sheets",
-  ];
-
-  const chunks = chunkArray(goalkeepers, GOALKEEPER_BATCH_SIZE);
-  const errors = [];
-  let insertedCount = 0;
-
-  for (const [chunkIndex, chunk] of chunks.entries()) {
-    const values = [];
-    const rows = chunk.map((goalkeeper, index) => {
-      const base = index * columns.length;
-      values.push(
-        goalkeeper.name,
-        goalkeeper.age,
-        goalkeeper.country,
-        goalkeeper.position,
-        goalkeeper.saves,
-        goalkeeper.saves_pct,
-        goalkeeper.goals_conceded,
-        goalkeeper.goals_conceded_per_90,
-        goalkeeper.clean_sheets,
-      );
-      return `(${columns.map((_, i) => `$${base + i + 1}`).join(", ")})`;
-    });
-
-    const query = `INSERT INTO goalkeepers (${columns.join(", ")}) VALUES ${rows.join(", ")}`;
-
-    try {
-      await pool.query(query, values);
-      insertedCount += chunk.length;
-    } catch (error) {
-      console.error(
-        `Error inserting goalkeeper chunk ${chunkIndex + 1}/${chunks.length} (${chunk.length} rows):`,
-        error,
-      );
-      errors.push({ chunkIndex, error });
-    }
-  }
-
-  if (errors.length > 0) {
-    const aggregateError = new Error(
-      `${errors.length} of ${chunks.length} goalkeeper chunk(s) failed to insert.`,
-    );
-    aggregateError.insertedRows = insertedCount;
-    aggregateError.totalRows = goalkeepers.length;
-    aggregateError.chunkErrors = errors;
-    throw aggregateError;
-  }
-
-  console.log(
-    `Batch of goalkeepers inserted successfully (${goalkeepers.length} rows in ${chunks.length} chunk(s)).`,
-  );
-};
 
 const storeAllPlayers = async (players) => {
   const playerData = players.filter((player) => player.position !== "GK");
   const goalkeeperData = players.filter((player) => player.position === "GK");
   const result =  await Promise.allSettled([
-    storePlayerBatch(playerData),
-    storeGoalkeeperBatch(goalkeeperData),
+    // storePlayerBatch(playerData),
+    // storeGoalkeeperBatch(goalkeeperData),
+    storeBatch({
+      players: playerData,
+      tableName: "player",
+      columns: [
+        "name",
+        "age",
+        "country",
+        "position",
+        "goals",
+        "goals_per_90",
+        "assists",
+        "yellow_cards",
+        "red_cards",
+        "points_per_game",
+      ],
+      batchSize: PLAYER_BATCH_SIZE,
+    }),
+    storeBatch({
+      players: goalkeeperData,
+      tableName: "goalkeepers",
+      columns: [
+        "name",
+        "age",
+        "country",
+        "position",
+        "saves",
+        "saves_pct",
+        "goals_conceded",
+        "goals_conceded_per_90",
+        "clean_sheets",
+      ],
+      batchSize: GOALKEEPER_BATCH_SIZE,
+    }),
   ]);
 
   const [playerResult, goalkeeperResult] = result;
@@ -246,8 +189,7 @@ if (require.main === module) {
 module.exports = {
   transformPlayerData,
   filterValidPlayers,
-  storePlayerBatch,
-  storeGoalkeeperBatch,
+  storeBatch,
   storeAllPlayers,
   PLAYER_BATCH_SIZE,
   GOALKEEPER_BATCH_SIZE,
