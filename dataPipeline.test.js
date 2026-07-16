@@ -4,12 +4,52 @@ const pool = require("./db");
 const {
   transformPlayerData,
   filterValidPlayers,
-  storePlayerBatch,
-  storeGoalkeeperBatch,
+  storeBatch,
   storeAllPlayers,
   PLAYER_BATCH_SIZE,
   GOALKEEPER_BATCH_SIZE,
 } = require("./dataPipeline");
+
+const PLAYER_COLUMNS = [
+  "name",
+  "age",
+  "country",
+  "position",
+  "goals",
+  "goals_per_90",
+  "assists",
+  "yellow_cards",
+  "red_cards",
+  "points_per_game",
+];
+
+const GOALKEEPER_COLUMNS = [
+  "name",
+  "age",
+  "country",
+  "position",
+  "saves",
+  "saves_pct",
+  "goals_conceded",
+  "goals_conceded_per_90",
+  "clean_sheets",
+];
+
+const storePlayerBatch = (players) =>
+  storeBatch({
+    players,
+    tableName: "player",
+    columns: PLAYER_COLUMNS,
+    batchSize: PLAYER_BATCH_SIZE,
+  });
+
+const storeGoalkeeperBatch = (goalkeepers) =>
+  storeBatch({
+    players: goalkeepers,
+    tableName: "goalkeepers",
+    columns: GOALKEEPER_COLUMNS,
+    batchSize: GOALKEEPER_BATCH_SIZE,
+  });
 
 describe("transformPlayerData (pure)", () => {
   it("maps a goalkeeper row into the goalkeeper shape", () => {
