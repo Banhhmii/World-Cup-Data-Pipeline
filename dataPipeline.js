@@ -108,8 +108,6 @@ const storeAllPlayers = async (players) => {
   const playerData = players.filter((player) => player.position !== "GK");
   const goalkeeperData = players.filter((player) => player.position === "GK");
   const result =  await Promise.allSettled([
-    // storePlayerBatch(playerData),
-    // storeGoalkeeperBatch(goalkeeperData),
     storeBatch({
       players: playerData,
       tableName: "player",
