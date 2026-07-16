@@ -11,7 +11,7 @@ Raw World Cup player stats sit in a flat CSV file — nothing structured or quer
 
 ## The Solution
 
-An ingestion pipeline reads and validates the CSV, splits rows into players vs. goalkeepers, and batch-inserts them into normalized Postgres tables. A Redis-cached `GET /players` endpoint serves the data, and a small vanilla-JS frontend renders it into stat cards.
+An ingestion pipeline reads and validates the CSV, splits rows into players vs. goalkeepers, and inserts them into normalized Postgres tables in fixed-size chunks (to stay under Postgres's parameter limit). A Redis-cached `GET /players` endpoint serves the data, and a small vanilla-JS frontend renders it into stat cards.
 
 ---
 
@@ -22,15 +22,16 @@ An ingestion pipeline reads and validates the CSV, splits rows into players vs. 
 - **Database:** PostgreSQL (Supabase), Knex for migrations
 - **Cache:** Redis (cache-aside, 1hr TTL on `/players`)
 - **Deployment:** Render
-- **Other:** Jest + Supertest (13 tests against an isolated Postgres `test` schema), `csv-parser` for ingestion, `express-rate-limit` (100 req/15min on `/players`)
+- **Other:** Jest + Supertest (17 tests against an isolated Postgres `test` schema), `csv-parser` for ingestion, `express-rate-limit` (100 req/15min on `/players`)
 
 ## Key Features
 
 - CSV ingestion pipeline that validates and transforms rows into player/goalkeeper shapes
-- Fail-soft batch inserts — `Promise.allSettled` means one table's bad batch doesn't block the other
+- Chunked batch inserts — players (200/chunk) and goalkeepers (30/chunk) are inserted in fixed-size chunks so a single insert never exceeds Postgres's 65,535 parameter limit
+- Fail-soft batch inserts — `Promise.allSettled` means one table's bad batch doesn't block the other, and a chunk failure within a table still reports how many rows committed before it
 - Redis-cached `GET /players` endpoint with a 1-hour TTL
 - Rate-limited API and structured request logging
-- 13 automated tests, including a real Postgres-constraint failure test, run against an isolated schema so tests never touch production data
+- 17 automated tests, including a real Postgres-constraint failure test and per-chunk coverage, run against an isolated schema so tests never touch production data
 
 ---
 
