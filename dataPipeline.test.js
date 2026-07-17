@@ -41,6 +41,7 @@ const storePlayerBatch = (players) =>
     tableName: "player",
     columns: PLAYER_COLUMNS,
     batchSize: PLAYER_BATCH_SIZE,
+    conflictColumns: ["name", "country"],
   });
 
 const storeGoalkeeperBatch = (goalkeepers) =>
@@ -49,6 +50,7 @@ const storeGoalkeeperBatch = (goalkeepers) =>
     tableName: "goalkeepers",
     columns: GOALKEEPER_COLUMNS,
     batchSize: GOALKEEPER_BATCH_SIZE,
+    conflictColumns: ["name", "country"],
   });
 
 describe("transformPlayerData (pure)", () => {
@@ -258,5 +260,25 @@ describe("batch storage (real test DB)", () => {
 
     const { rows } = await pool.query("SELECT * FROM player");
     expect(rows).toHaveLength(PLAYER_BATCH_SIZE);
+  });
+
+  it("re-inserting the same player upserts instead of duplicating", async () => {
+    await storePlayerBatch([validPlayer]);
+    const updatedPlayer = { ...validPlayer, goals: 99 };
+    await storePlayerBatch([updatedPlayer]);
+
+    const { rows } = await pool.query("SELECT * FROM player");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].goals).toBe(99);
+  });
+
+  it("re-inserting the same goalkeeper upserts instead of duplicating", async () => {
+    await storeGoalkeeperBatch([validGoalkeeper]);
+    const updatedGoalkeeper = { ...validGoalkeeper, saves: 25 };
+    await storeGoalkeeperBatch([updatedGoalkeeper]);
+
+    const { rows } = await pool.query("SELECT * FROM goalkeepers");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].saves).toBe(25);
   });
 });

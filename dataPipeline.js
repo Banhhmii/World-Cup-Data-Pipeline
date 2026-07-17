@@ -56,7 +56,7 @@ const filterValidPlayers = (players) => {
   });
 };
 
-const storeBatch = async ({players, tableName, columns, batchSize}) => {
+const storeBatch = async ({players, tableName, columns, batchSize, conflictColumns}) => {
   if (players.length === 0) {
     console.log(`No ${tableName} to store.`);
     return;
@@ -66,6 +66,11 @@ const storeBatch = async ({players, tableName, columns, batchSize}) => {
   const errors = [];
   let insertedCount = 0;
 
+  const updateColumns = columns.filter((col) => !conflictColumns.includes(col));
+  const conflictClause = ` ON CONFLICT (${conflictColumns.join(", ")}) DO UPDATE SET ${updateColumns
+    .map((col) => `${col} = EXCLUDED.${col}`)
+    .join(", ")}`;
+
   for (const [chunkIndex, chunk] of chunks.entries()) {
     const values = [];
     const rows = chunk.map((player, index) => {
@@ -74,7 +79,7 @@ const storeBatch = async ({players, tableName, columns, batchSize}) => {
       return `(${columns.map((_, i) => `$${base + i + 1}`).join(", ")})`;
     });
 
-    const query = `INSERT INTO ${tableName} (${columns.join(", ")}) VALUES ${rows.join(", ")}`;
+    const query = `INSERT INTO ${tableName} (${columns.join(", ")}) VALUES ${rows.join(", ")}${conflictClause}`;
 
     try {
       await pool.query(query, values);
@@ -124,6 +129,7 @@ const storeAllPlayers = async (players) => {
         "points_per_game",
       ],
       batchSize: PLAYER_BATCH_SIZE,
+      conflictColumns: ["name", "country"],
     }),
     storeBatch({
       players: goalkeeperData,
@@ -140,6 +146,7 @@ const storeAllPlayers = async (players) => {
         "clean_sheets",
       ],
       batchSize: GOALKEEPER_BATCH_SIZE,
+      conflictColumns: ["name", "country"],
     }),
   ]);
 
