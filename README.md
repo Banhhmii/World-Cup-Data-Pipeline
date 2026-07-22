@@ -15,6 +15,30 @@ An ingestion pipeline reads and validates the CSV, splits rows into players vs. 
 
 ---
 
+## Architecture
+
+```mermaid
+flowchart LR
+    CSV["World Cup CSV"] --> Validate["Validate & split rows"]
+    Validate --> PlayerRows["Player rows"]
+    Validate --> KeeperRows["Goalkeeper rows"]
+    PlayerRows --> ChunkP["Chunked insert, 200/batch"]
+    KeeperRows --> ChunkK["Chunked insert, 30/batch"]
+    ChunkP --> PG[("PostgreSQL")]
+    ChunkK --> PG
+
+    Client["Client"] --> API["GET /players"]
+    API --> Cache{"Redis cache hit?"}
+    Cache -- "yes" --> Return["Return cached JSON"]
+    Cache -- "no" --> PG
+    PG --> SetCache["Cache result, 1hr TTL"]
+    SetCache --> Return
+```
+
+Two independent paths: a one-time/re-runnable **ingestion path** (CSV → validate → chunked insert, so no single query exceeds Postgres's 65,535 bound-parameter limit) and a **read path** (`GET /players`) that checks Redis before ever touching Postgres, so a cache outage degrades to a normal DB read instead of taking the endpoint down.
+
+---
+
 ## Tech Stack
 
 - **Frontend:** Vanilla HTML/CSS/JS (no framework)
