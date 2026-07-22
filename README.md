@@ -59,6 +59,65 @@ Two independent paths: a one-time/re-runnable **ingestion path** (CSV → valida
 
 ---
 
+## API Reference
+
+### GET /players
+
+Return all ingested player and goalkeeper stats.
+
+**Auth required:** No  
+**Rate limit:** 100 requests / 15 minutes  
+**Cache:** Redis, 1-hour TTL — a cache hit returns straight from Redis and skips Postgres entirely
+
+```
+GET /players
+```
+
+**Response `200 OK`:**
+
+```json
+{
+  "players": [
+    {
+      "id": 1,
+      "name": "Kylian Mbappé",
+      "age": 25,
+      "country": "France",
+      "position": "FW",
+      "goals": 8,
+      "goals_per_90": 1.14,
+      "assists": 2,
+      "yellow_cards": 1,
+      "red_cards": 0,
+      "points_per_game": 2.4
+    }
+  ],
+  "goalkeepers": [
+    {
+      "id": 1,
+      "name": "Emiliano Martínez",
+      "age": 31,
+      "country": "Argentina",
+      "position": "GK",
+      "saves": 18,
+      "saves_pct": 75.0,
+      "goals_conceded": 6,
+      "goals_conceded_per_90": 0.86,
+      "clean_sheets": 4
+    }
+  ]
+}
+```
+
+**Error responses:**
+
+| Status | Body |
+|---|---|
+| `429 Too Many Requests` | `Too many requests from this IP, please try again after 15 minutes` (plain text — this route doesn't wrap rate-limit errors in a JSON envelope) |
+| `500 Internal Server Error` | `{ "error": "Internal Server Error" }` |
+
+---
+
 ## Setup (Run Locally)
 
 ### Prerequisites
