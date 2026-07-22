@@ -1,7 +1,7 @@
 # World Cup Player Stats Pipeline
 > A CSV-to-Postgres data pipeline with a Redis-cached API for exploring World Cup player and goalkeeper stats.
 
-[Live demo](https://world-cup-data-pipeline.onrender.com) · [GitHub](https://github.com/Banhhmii/World-Cup-Data-Pipeline)
+[Live demo](https://world-cup-data-pipeline.onrender.com) · [GitHub](https://github.com/Banhhmii/World-Cup-Data-Pipeline) · [Case study](https://dev.to/banh/world-cup-data-pipeline-1721)
 
 ---
 
@@ -183,4 +183,5 @@ See `.env.example` for the full list. You'll need:
 
 Built by Tommy Ngo as part of my self-taught journey into software engineering.
 
+- https://banhhmii.github.io
 - https://www.linkedin.com/in/tommy-ngo1
